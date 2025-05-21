@@ -37,13 +37,12 @@ class TestAccountService(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Runs once before test suite"""
+        """Runs once after all tests"""
 
     def setUp(self):
         """Runs before each test"""
         db.session.query(Account).delete()  # clean up the last tests
         db.session.commit()
-
         self.client = app.test_client()
 
     def tearDown(self):
@@ -123,7 +122,6 @@ class TestAccountService(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    # Your requested test case added here
     def test_read_an_account(self):
         """It should Read a single Account"""
         account = self._create_accounts(1)[0]
@@ -137,51 +135,38 @@ class TestAccountService(TestCase):
         self.assertEqual(data["phone_number"], account.phone_number)
         self.assertEqual(data["date_joined"], str(account.date_joined))
 
-    def test_abc_get_account_not_found(self):
-        """abc: It should return 404 when Account is not found"""
+    def test_get_account_not_found(self):
+        """It should return 404 when Account is not found"""
         response = self.client.get(f"{BASE_URL}/0")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_abc_update_account(self):
-        """abc: It should Update an existing Account"""
+    def test_get_account_list(self):
+        """It should Get a list of Accounts"""
+        self._create_accounts(5)
+        resp = self.client.get(BASE_URL)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 5)
+
+    def test_update_account(self):
+        """It should Update an existing Account"""
+        # create an Account to update
+        test_account = AccountFactory()
+        resp = self.client.post(BASE_URL, json=test_account.serialize())
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+        # update the account
+        new_account = resp.get_json()
+        new_account["name"] = "Something Known"
+        resp = self.client.put(f"{BASE_URL}/{new_account['id']}", json=new_account)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        updated_account = resp.get_json()
+        self.assertEqual(updated_account["name"], "Something Known")
+
+    def test_delete_account(self):
+        """It should Delete an Account"""
         account = self._create_accounts(1)[0]
-        updated_name = "abc Updated Name"
-        account.name = updated_name
-        response = self.client.put(
-            f"{BASE_URL}/{account.id}",
-            json=account.serialize(),
-            content_type="application/json"
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        updated = response.get_json()
-        self.assertEqual(updated["name"], updated_name)
+        resp = self.client.delete(f"{BASE_URL}/{account.id}")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
 
-    def test_abc_update_account_not_found(self):
-        """abc: It should return 404 when updating non-existent Account"""
-        account = AccountFactory()
-        account.id = 0
-        response = self.client.put(
-            f"{BASE_URL}/0",
-            json=account.serialize(),
-            content_type="application/json"
-        )
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_abc_delete_account(self):
-        """abc: It should Delete an Account"""
-        account = self._create_accounts(1)[0]
-        response = self.client.delete(f"{BASE_URL}/{account.id}")
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-        # Verify deletion
-        response = self.client.get(f"{BASE_URL}/{account.id}")
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_abc_list_accounts(self):
-        """abc: It should list all Accounts"""
-        self._create_accounts(3)
-        response = self.client.get(BASE_URL)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertGreaterEqual(len(data), 3)
 
