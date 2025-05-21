@@ -1,5 +1,5 @@
 ---
-name: 📝 User Story
+name:  User Story
 about: Create a user story for new features or enhancements
 title: "[USER STORY] Event Registration Feature"
 labels: user story
@@ -11,7 +11,7 @@ assignees: ''
 **I need** the ability to register for upcoming events  
 **So that** I can participate in events of my interest and receive updates  
 
-### 💬 Details and Assumptions
+### Details and Assumptions
 * Users must be logged in to register for any event  
 * Event data (title, date, time, location, capacity, organizer info) is already available in the database  
 * Users should not be able to register once an event is full  
@@ -23,7 +23,7 @@ assignees: ''
 * The system should handle at least 1000 concurrent registration requests  
 * Registration activity should be logged for analytics/reporting  
 
-### ✅ Acceptance Criteria     
+###  Acceptance Criteria     
 ```gherkin
 Given I am a logged-in user  
 When I click the "Register" button on a specific event page  
