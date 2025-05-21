@@ -142,4 +142,5 @@ class Account(db.Model, PersistentBase):
             name (string): the name of the Accounts you want to match
         """
         logger.info("Processing name query for %s ...", name)
-        return cls.query.filter(cls.name == name)
+        return cls.query.filter(cls.name == name).all()
+
