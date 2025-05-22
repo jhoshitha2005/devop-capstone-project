@@ -1,5 +1,5 @@
 import unittest
-from service import app
+from service import app, talisman
 from service.models import Account
 from service.models import AccountFactory
 from http import HTTPStatus as status
@@ -9,6 +9,12 @@ HTTPS_ENVIRON = {'wsgi.url_scheme': 'https'}  # For HTTPS testing
 
 
 class TestAccountService(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """Run once before all tests"""
+        talisman.force_https = False
+
     def setUp(self):
         self.app = app
         self.client = self.app.test_client()
@@ -86,3 +92,4 @@ class TestAccountService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
