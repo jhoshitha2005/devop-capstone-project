@@ -81,3 +81,9 @@ class Account(db.Model, PersistentBase):
         except TypeError as error:
             raise DataValidationError(f"Invalid Account: bad data - {error.args[0]}") from error
         return self
+
+
+def init_db(app):
+    """Initialize the database (create tables)."""
+    with app.app_context():
+        db.create_all()
