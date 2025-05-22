@@ -7,3 +7,12 @@ on:
   pull_request:
     branches:
       - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest          # This specifies the VM runner OS
+    container: python:3.9-slim      # Run the job inside Python 3.9 Docker container
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
