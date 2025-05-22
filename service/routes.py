@@ -1,64 +1,15 @@
-"""
-Account Service
-
-This microservice handles the lifecycle of Accounts
-"""
-# pylint: disable=unused-import
-from flask import jsonify, request, make_response, abort, url_for   # noqa; F401
+from flask import Flask, jsonify, request, abort
 from service.models import Account
-from service.common import status  # HTTP Status Codes
-from . import app  # Import Flask application
+from http import HTTPStatus as status
 
+app = Flask(__name__)
 
-############################################################
-# Health Endpoint
-############################################################
-@app.route("/health")
-def health():
-    """Health Status"""
-    return jsonify(dict(status="OK")), status.HTTP_200_OK
-
-
-######################################################################
-# GET INDEX
-######################################################################
-@app.route("/")
-def index():
-    """Root URL response"""
-    return (
-        jsonify(
-            name="Account REST API Service",
-            version="1.0",
-        ),
-        status.HTTP_200_OK,
-    )
-
-
-######################################################################
-# CREATE A NEW ACCOUNT
-######################################################################
-@app.route("/accounts", methods=["POST"])
-def create_accounts():
-    """
-    Creates an Account
-    This endpoint will create an Account based the data in the body that is posted
-    """
-    app.logger.info("Request to create an Account")
-    check_content_type("application/json")
-    account = Account()
-    account.deserialize(request.get_json())
-    account.create()
-    message = account.serialize()
-    location_url = url_for("get_accounts", account_id=account.id, _external=True)
-    return make_response(
-        jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
-    )
-
+BASE_URL = "/accounts"
 
 ######################################################################
 # LIST ALL ACCOUNTS
 ######################################################################
-@app.route("/accounts", methods=["GET"])
+@app.route(BASE_URL, methods=["GET"])
 def list_accounts():
     """
     List all Accounts
@@ -70,76 +21,70 @@ def list_accounts():
     account_list = [account.serialize() for account in accounts]
 
     app.logger.info("Returning [%s] accounts", len(account_list))
-    return jsonify(account_list), status.HTTP_200_OK
+    return jsonify(account_list), status.OK
 
 
 ######################################################################
 # READ AN ACCOUNT
 ######################################################################
-@app.route("/accounts/<int:account_id>", methods=["GET"])
-def get_accounts(account_id):
+@app.route(f"{BASE_URL}/<int:account_id>", methods=["GET"])
+def get_account(account_id):
     """
-    Retrieve a single Account
-    This endpoint will return an Account based on its id
+    Reads an Account
+    This endpoint will read an Account based on the account_id that is requested
     """
-    app.logger.info("Request to retrieve account with id: %s", account_id)
+    app.logger.info("Request to read an Account with id: %s", account_id)
+
     account = Account.find(account_id)
     if not account:
-        abort(status.HTTP_404_NOT_FOUND, f"Account with id '{account_id}' was not found.")
-    return make_response(jsonify(account.serialize()), status.HTTP_200_OK)
+        abort(status.NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+
+    return account.serialize(), status.OK
 
 
 ######################################################################
 # UPDATE AN EXISTING ACCOUNT
 ######################################################################
-@app.route("/accounts/<int:account_id>", methods=["PUT"])
-def update_accounts(account_id):
+@app.route(f"{BASE_URL}/<int:account_id>", methods=["PUT"])
+def update_account(account_id):
     """
     Update an Account
     This endpoint will update an Account based on the posted data
     """
     app.logger.info("Request to update an Account with id: %s", account_id)
 
-    check_content_type("application/json")
     account = Account.find(account_id)
     if not account:
-        abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+        abort(status.NOT_FOUND, f"Account with id [{account_id}] could not be found.")
 
     account.deserialize(request.get_json())
     account.update()
 
-    return jsonify(account.serialize()), status.HTTP_200_OK
+    return account.serialize(), status.OK
 
 
 ######################################################################
 # DELETE AN ACCOUNT
 ######################################################################
-@app.route("/accounts/<int:account_id>", methods=["DELETE"])
-def delete_accounts(account_id):
+@app.route(f"{BASE_URL}/<int:account_id>", methods=["DELETE"])
+def delete_account(account_id):
     """
     Delete an Account
-    This endpoint will delete an Account based on the id specified in the path
+    This endpoint will delete an Account based on the account_id that is requested
     """
-    app.logger.info("Request to delete account with id: %s", account_id)
+    app.logger.info("Request to delete an Account with id: %s", account_id)
+
     account = Account.find(account_id)
-    if account:
-        account.delete()
-    return make_response("", status.HTTP_204_NO_CONTENT)
+    if not account:
+        abort(status.NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+
+    account.delete()
+    return "", status.NO_CONTENT
 
 
 ######################################################################
-#  U T I L I T Y   F U N C T I O N S
+# METHOD NOT ALLOWED HANDLER for /accounts route (e.g. DELETE on /accounts)
 ######################################################################
-def check_content_type(media_type):
-    """Checks that the media type is correct"""
-    content_type = request.headers.get("Content-Type")
-    if content_type and content_type == media_type:
-        return
-    app.logger.error("Invalid Content-Type: %s", content_type)
-    abort(
-        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-        f"Content-Type must be {media_type}",
-    )
-
-
-
+@app.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify({"error": "Method not allowed"}), status.METHOD_NOT_ALLOWED
