@@ -4,14 +4,45 @@ on:
   push:
     branches:
       - main
+      - add-ci-build
   pull_request:
     branches:
       - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest          # This specifies the VM runner OS
-    container: python:3.9-slim      # Run the job inside Python 3.9 Docker container
+    runs-on: ubuntu-latest
+
+    container: python:3.9-slim
+
+    services:
+      postgres:
+        image: postgres:alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: pgs3cr3t
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
+
+      - name: Wait for Postgres to be ready
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -p 5432 && break
+            echo "Waiting for Postgres..."
+            sleep 5
+          done
+
+      - name: Run tests
+        run: |
+          # Your test commands here, e.g.
+          # python -m unittest discover tests/
+          echo "Run your tests now"
