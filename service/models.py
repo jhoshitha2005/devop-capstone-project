@@ -1,44 +1,71 @@
-"""
-Models for Account
-"""
-
 import logging
 from datetime import date
-from service import db
+from . import db
 
 logger = logging.getLogger("flask.app")
 
 class DataValidationError(Exception):
     """Used for data validation errors when deserializing"""
 
-class Account(db.Model):
-    """Class that represents an Account"""
+class PersistentBase:
+    def __init__(self):
+        self.id = None
 
+    def create(self):
+        logger.info("Creating %s", getattr(self, "name", "object"))
+        self.id = None
+        db.session.add(self)
+        db.session.commit()
+
+    def update(self):
+        logger.info("Updating %s", getattr(self, "name", "object"))
+        db.session.commit()
+
+    def delete(self):
+        logger.info("Deleting %s", getattr(self, "name", "object"))
+        db.session.delete(self)
+        db.session.commit()
+
+    @classmethod
+    def all(cls):
+        logger.info("Processing all records")
+        return cls.query.all()
+
+    @classmethod
+    def find(cls, by_id):
+        logger.info("Processing lookup for id %s ...", by_id)
+        return cls.query.get(by_id)
+
+    @classmethod
+    def find_by_name(cls, name):
+        logger.info("Processing name query for %s ...", name)
+        return cls.query.filter(cls.name == name).all()
+
+
+class Account(db.Model, PersistentBase):
     __tablename__ = 'accounts'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), nullable=False)
     email = db.Column(db.String(64), nullable=False)
     address = db.Column(db.String(256), nullable=False)
-    phone_number = db.Column(db.String(32), nullable=True)  # optional
+    phone_number = db.Column(db.String(32), nullable=True)
     date_joined = db.Column(db.Date(), nullable=False, default=date.today)
 
     def __repr__(self):
         return f"<Account {self.name} id=[{self.id}]>"
 
     def serialize(self):
-        """Serialize an Account into a dict"""
         return {
             "id": self.id,
             "name": self.name,
             "email": self.email,
             "address": self.address,
             "phone_number": self.phone_number,
-            "date_joined": self.date_joined.isoformat() if self.date_joined else None
+            "date_joined": self.date_joined.isoformat() if self.date_joined else None,
         }
 
     def deserialize(self, data):
-        """Deserialize Account from dict"""
         try:
             self.name = data["name"]
             self.email = data["email"]
@@ -54,10 +81,3 @@ class Account(db.Model):
         except TypeError as error:
             raise DataValidationError(f"Invalid Account: bad data - {error.args[0]}") from error
         return self
-
-    @classmethod
-    def find_by_name(cls, name):
-        """Return all Accounts matching the given name"""
-        logger.info("Processing name query for %s ...", name)
-        return cls.query.filter(cls.name == name).all()
-
