@@ -1,14 +1,15 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_talisman import Talisman
+from flask_cors import CORS
 
-db = SQLAlchemy()
+app = Flask(__name__)
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object("config")
-    db.init_app(app)
+# Initialize Talisman and assign to variable talisman
+talisman = Talisman(app)
 
-    # Import models here to register with SQLAlchemy
-    from .models import Account
+# Initialize CORS for the app
+CORS(app)
 
-    return app
+@app.route('/')
+def index():
+    return "Hello, world!"
